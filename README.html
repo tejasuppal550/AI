@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Admin Dashboard</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; text-align: center; margin: 50px;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            transition: 0.3s;
+        }
+        .container {
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0,0,0,0.2); text-align: center;
+            width: 400px; margin: auto; margin-top: 50px;
+        }
+        .hidden { display: none; }
+        input, button, textarea { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 16px; }
+        button { background-color: #0072ff; border: none; color: white; cursor: pointer; transition: 0.3s; }
+        button:hover { background-color: #0057b8; }
+        .message-item { display: flex; justify-content: space-between; background: #f1f1f1; padding: 10px; margin: 5px; border-radius: 5px; align-items: center; }
+        #darkModeToggle { position: absolute; top: 10px; right: 10px; cursor: pointer; }
+    </style>
+    <script>
+        function loginUser(type) {
+            var username = document.getElementById(type + "-user").value;
+            var password = document.getElementById(type + "-pass").value;
+
+            var savedAdminPass = localStorage.getItem("adminPassword") || "2025";
+            var savedUserPass = localStorage.getItem("userPassword") || "user123";
+
+            if (type === "admin" && username === "Tejas" && password === savedAdminPass) {
+                localStorage.setItem("userType", "admin");
+                location.reload();
+            } else if (type === "user" && username === "User" && password === savedUserPass) {
+                localStorage.setItem("userType", "user");
+                localStorage.setItem("currentUser", username);
+                location.reload();
+            } else {
+                alert("Invalid credentials!");
+            }
+        }
+
+        function loadDashboard() {
+            var userType = localStorage.getItem("userType");
+            if (userType) {
+                document.getElementById("loginSection").classList.add("hidden");
+                document.getElementById("dashboard").classList.remove("hidden");
+                document.getElementById(userType).classList.remove("hidden");
+                showMessages();
+            }
+        }
+
+        function changePassword(type) {
+            var newPassword = document.getElementById(type + "NewPass").value;
+            if (newPassword.trim() !== "") {
+                localStorage.setItem(type + "Password", newPassword);
+                alert(type.charAt(0).toUpperCase() + type.slice(1) + " password updated successfully!");
+            } else {
+                alert("Enter a valid password!");
+            }
+        }
+
+        function sendMessage(userType) {
+            var message = document.getElementById(userType + "-messageBox").value;
+            if (message.trim() !== "") {
+                var messages = JSON.parse(localStorage.getItem("messages")) || [];
+                var senderName = localStorage.getItem("currentUser") || userType;
+                messages.push({ text: message, sender: senderName });
+                localStorage.setItem("messages", JSON.stringify(messages));
+                alert("Message Sent!");
+                document.getElementById(userType + "-messageBox").value = "";
+                showMessages();
+            }
+        }
+
+        function showMessages() {
+            var messages = JSON.parse(localStorage.getItem("messages")) || [];
+            var userMessages = document.getElementById("userMessages");
+            var adminMessages = document.getElementById("adminMessages");
+
+            userMessages.innerHTML = messages.length > 0 ? messages.map(msg => `
+                <div class='message-item'>
+                    ${msg.text} <strong>(${msg.sender})</strong>
+                </div>`).join("") : "<p>No new messages.</p>";
+
+            adminMessages.innerHTML = messages.length > 0 ? messages.map((msg, index) => 
+                `<div class='message-item'>${msg.text} <strong>(${msg.sender})</strong> <button onclick='deleteMessage(${index})'>Delete</button></div>`).join("") : "<p>No messages sent.</p>";
+        }
+
+        function deleteMessage(index) {
+            var messages = JSON.parse(localStorage.getItem("messages")) || [];
+            messages.splice(index, 1);
+            localStorage.setItem("messages", JSON.stringify(messages));
+            alert("Message Deleted!");
+            showMessages();
+        }
+
+        function toggleDarkMode() {
+            var body = document.body;
+            body.style.background = body.style.background.includes("black") ? "linear-gradient(to right, #00c6ff, #0072ff)" : "black";
+            body.style.color = body.style.color === "white" ? "black" : "white";
+        }
+
+        function logout() {
+            localStorage.removeItem("userType");
+            localStorage.removeItem("currentUser");
+            location.reload();
+        }
+
+        document.addEventListener("DOMContentLoaded", loadDashboard);
+    </script>
+</head>
+<body>
+
+    <button id="darkModeToggle" onclick="toggleDarkMode()">🌙</button>
+
+    <div id="loginSection" class="container">
+        <h2>Login</h2>
+        <div>
+            <h3>Admin Login</h3>
+            <input type="text" id="admin-user" placeholder="Username" value="Tejas"><br>
+            <input type="password" id="admin-pass" placeholder="Password"><br>
+            <button onclick="loginUser('admin')">Login as Admin</button>
+        </div>
+        <div>
+            <h3>User Login</h3>
+            <input type="text" id="user-user" placeholder="Username" value="User"><br>
+            <input type="password" id="user-pass" placeholder="Password"><br>
+            <button onclick="loginUser('user')">Login as User</button>
+        </div>
+    </div>
+
+    <div id="dashboard" class="hidden container">
+        <h2>Dashboard</h2>
+        <div id="admin" class="hidden">
+            <h3>Admin Panel</h3>
+            <h4>Messages:</h4>
+            <div id="adminMessages"></div>
+            <textarea id="admin-messageBox" placeholder="Send announcement..."></textarea><br>
+            <button onclick="sendMessage('admin')">Send</button>
+            <h4>Reset Admin Password:</h4>
+            <input type="password" id="adminNewPass" placeholder="New Admin Password"><br>
+            <button onclick="changePassword('admin')">Reset Admin Password</button>
+            <h4>Reset User Password:</h4>
+            <input type="password" id="userNewPass" placeholder="New User Password"><br>
+            <button onclick="changePassword('user')">Reset User Password</button>
+        </div>
+        <div id="user" class="hidden">
+            <h3>User Panel</h3>
+            <h4>Messages:</h4>
+            <div id="userMessages"></div>
+            <textarea id="user-messageBox" placeholder="Send message..."></textarea><br>
+            <button onclick="sendMessage('user')">Send</button>
+        </div>
+        <br><button onclick="logout()">Logout</button>
+    </div>
+
+</body>
+</html>
